@@ -56,7 +56,8 @@
               ps.httpx
               ps.scipy
               ps.pyyaml
-            ] ++ [ catppuccin-jupyterlab ]  # include the theme here
+              ps.pyarrow
+            ] ++ [ catppuccin-jupyterlab ]
           );
         in {
           default = pkgs.mkShellNoCC {
@@ -66,7 +67,6 @@
               pkgs.git
             ];
 
-            # Optional: install a kernel spec matching this env
             postShellHook = ''
               KERNEL_NAME="jl-313"
               KERNEL_DIR="$HOME/.local/share/jupyter/kernels/$KERNEL_NAME"
