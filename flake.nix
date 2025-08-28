@@ -10,7 +10,7 @@
         pkgs = import nixpkgs { inherit system; };
       });
 
-      version = "3.13";
+      version = "3";
     in {
       devShells = forEachSupportedSystem ({ pkgs }:
         let
@@ -22,7 +22,6 @@
             ];
 
           python = pkgs."python${concatMajorMinor version}";
-
 
           catppuccin-jupyterlab = python.pkgs.buildPythonPackage rec {
             pname = "catppuccin_jupyterlab";
@@ -36,13 +35,30 @@
               dist = "py3";
               abi = "none";
               platform = "any";
-              # sha256 (SRI) or base32 works:
-              hash = "sha256-ZDg5scRuk+SXvrledB1A3VhfxOSJpEwsbOiahpqc72c="; # <-- SRI works if you use 'hash'
+              hash = "sha256-ZDg5scRuk+SXvrledB1A3VhfxOSJpEwsbOiahpqc72c=";
             };
 
             doCheck = false;
           };
-          # One unified Python environment for both Lab (frontend) and the theme
+
+          actipy = python.pkgs.buildPythonPackage rec {
+            pname = "actipy";
+            version = "2.0.0"; # Latest version as of 2025-08-22; update as needed
+            format = "wheel";
+
+            src = pkgs.fetchPypi {
+              inherit pname version;
+              format = "wheel";
+              python = "py3";
+              dist = "py3";
+              abi = "none";
+              platform = "any";
+              hash = "sha256-HSVodOlV3vqniRHlwEgThKWF19fg4bDirDCDCnz32tA=";
+            };
+
+            doCheck = false;
+          };
+
           pythonEnv = python.withPackages (ps:
             [
               ps.jupyterlab
@@ -57,14 +73,16 @@
               ps.scipy
               ps.pyyaml
               ps.pyarrow
-            ] ++ [ catppuccin-jupyterlab ]
+              ps.jpype1
+              ps.statsmodels
+            ] ++ [ catppuccin-jupyterlab actipy ]
           );
         in {
           default = pkgs.mkShellNoCC {
-            # IMPORTANT: do NOT activate a venv here; it will shadow pythonEnv
             packages = [
               pythonEnv
               pkgs.git
+              pkgs.jdk21 # Add OpenJDK 21 to provide JVM
             ];
 
             postShellHook = ''
@@ -73,11 +91,12 @@
               if [ ! -d "$KERNEL_DIR" ]; then
                 python -m ipykernel install --user \
                   --name "$KERNEL_NAME" \
-                  --display-name "Python 3.13 (flake)" >/dev/null
+                  --display-name "Python 3.9 (flake)" >/dev/null
               fi
+              # Set JAVA_HOME to the JDK path
+              export JAVA_HOME=${pkgs.jdk21}
             '';
           };
         });
     };
 }
-
